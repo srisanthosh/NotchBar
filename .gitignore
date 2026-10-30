@@ -1,0 +1,13 @@
+.build/
+build/
+.swiftpm/
+*.xcodeproj/
+xcuserdata/
+.DS_Store
+snapshots/
+
+# Secrets and local editor settings
+.env
+.env.*
+.vscode/
+.claude/
