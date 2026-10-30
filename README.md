@@ -10,6 +10,7 @@ Music, meetings, Claude usage, timers, clipboard and headphones, right where you
 Native SwiftUI, no dependencies, and almost no battery.
 
 [![Build](https://github.com/srisanthosh/NotchBar/actions/workflows/build.yml/badge.svg)](https://github.com/srisanthosh/NotchBar/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/srisanthosh/NotchBar)](https://github.com/srisanthosh/NotchBar/releases/latest)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
@@ -106,6 +107,14 @@ Banners drop from the notch for a moment, then tuck back in.
 </details>
 
 ## Install
+
+### Download
+
+1. Download the latest **NotchBar zip** from [Releases](https://github.com/srisanthosh/NotchBar/releases/latest), open it, and drag **NotchBar** into **Applications**.
+2. Open it. macOS says it can't verify the app, because NotchBar isn't notarized by Apple. Click **Done**.
+3. Open **System Settings › Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to NotchBar.
+
+### Build from source
 
 You need macOS 14 or later and the Xcode Command Line Tools. Full Xcode isn't required.
 
