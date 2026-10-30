@@ -129,6 +129,8 @@ NotchBar aims to feel like part of macOS and to cost almost no battery. These ru
 
 Draft pull requests are welcome if you want early feedback.
 
+**The automatic check.** Every pull request is built on a Mac by GitHub Actions. You'll see **Build and snapshot** at the bottom of the pull request. A green tick means it built. A red cross means it didn't: click **Details** to see the error, fix it, and push again. The check also renders every snapshot screenshot. To look at them, open **Details**, then **Summary**, and download **snapshots** under Artifacts.
+
 ## After you open it
 
 A maintainer will review your pull request, usually within a week. Reviews may ask for changes. That's normal and not a judgement of your work. Push new commits to the same branch and the pull request updates itself.

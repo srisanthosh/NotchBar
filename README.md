@@ -9,6 +9,7 @@
 Music, meetings, Claude usage, timers, clipboard and headphones, right where your camera is.
 Native SwiftUI, no dependencies, and almost no battery.
 
+[![Build](https://github.com/srisanthosh/NotchBar/actions/workflows/build.yml/badge.svg)](https://github.com/srisanthosh/NotchBar/actions/workflows/build.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
