@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an idea or an improvement.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Check the [Roadmap](https://github.com/srisanthosh/NotchBar#roadmap) first, as it may already be planned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you're trying to do, and what gets in the way today.
+      placeholder: I often miss when a long download finishes, because I'm in another app.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like NotchBar to do?
+      placeholder: Show a short banner in the notch when a download in Safari or Chrome finishes.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything else you've considered?
+      description: Other apps that do this well, workarounds you use today, or mockups.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Want to build it?
+      options:
+        - label: I'd like to work on this myself.

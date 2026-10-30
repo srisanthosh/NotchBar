@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/srisanthosh/NotchBar/security/advisories/new
+    about: Please report security problems privately, not in a public issue.
+  - name: Contributing guide
+    url: https://github.com/srisanthosh/NotchBar/blob/main/CONTRIBUTING.md
+    about: How to set up your Mac, make a change and open a pull request.

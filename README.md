@@ -15,7 +15,7 @@ Native SwiftUI, no dependencies, and almost no battery.
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-30D158)
 ![CPU at rest: 0.1%](https://img.shields.io/badge/CPU%20at%20rest-0.1%25-30D158)
 ![App size: 4.5 MB](https://img.shields.io/badge/app%20size-4.5%20MB-8E8E93)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue)](LICENSE)
 
 <img src="docs/screenshots/00-home.png" width="860" alt="The open notch showing Home: now playing, a month calendar, weather, upcoming meetings, Claude usage and a quick timer">
 
@@ -401,13 +401,18 @@ Each feature has the same shape. A `@MainActor` `ObservableObject` owns the stat
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome, including your first ever open source contribution. The [contributing guide](CONTRIBUTING.md) walks you through setting up your Mac, making a change and opening a pull request.
 
-1. Keep it native and dependency-free.
-2. Prefer system events to timers. If you must poll, poll only while the feature is in use, and use `EfficientTimer` so it pauses while the Mac sleeps.
-3. Run `--snapshot` and check the states you touched, in both the open and closed notch.
-4. Measure with `top` before and after anything that runs in the background.
+- 🐛 [Report a bug](https://github.com/srisanthosh/NotchBar/issues/new?template=bug_report.yml)
+- 💡 [Suggest a feature](https://github.com/srisanthosh/NotchBar/issues/new?template=feature_request.yml)
+- 🔒 [Report a security problem privately](SECURITY.md)
+
+The short version: keep it native and dependency-free, use system events rather than timers, check your change with `--snapshot`, and measure anything that runs in the background. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-NotchBar is released under the [MIT License](LICENSE).
+Copyright © 2026 Sri Santhosh N.
+
+NotchBar is free software under the [GNU General Public License v3.0](LICENSE). You can use, study, change and share it. If you share a changed version, or an app built from this code, you must release its source code under the same license.
+
+**Name and icon.** The license covers the code, not the NotchBar name or its icon. If you publish a fork, give it its own name and icon, so nobody mistakes it for NotchBar.

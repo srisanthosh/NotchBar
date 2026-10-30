@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in NotchBar isn't working as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please [search existing issues](https://github.com/srisanthosh/NotchBar/issues) first, in case it's already known.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: I played a YouTube video in Chrome, and the notch showed Teams as playing.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Chrome and play a video
+        2. Open Teams
+        3. Hover over the notch
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of NotchBar?
+      options:
+        - Now playing
+        - Claude usage
+        - Volume and brightness
+        - Headphones
+        - Dictation
+        - Calendar and meetings
+        - Timer
+        - Clipboard
+        - Weather
+        - Menu bar icons
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model
+      placeholder: MacBook Pro 14-inch, M3
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 26.4
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, recordings or debug state
+      description: |
+        Drag files in here. For media, dictation or headphone bugs, the debug state helps a lot; see [Reporting a bug](https://github.com/srisanthosh/NotchBar/blob/main/CONTRIBUTING.md#reporting-a-bug). Check it for anything private before attaching it.
