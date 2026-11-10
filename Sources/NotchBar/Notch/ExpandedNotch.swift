@@ -32,6 +32,7 @@ struct ExpandedNotch: View {
         case .timer: TimerPanel(timer: timer)
         case .clipboard: ClipboardPanel(store: vm.clipboard) { vm.copyClip($0, paste: $1) }
         case .calendar: CalendarPanel(calendar: vm.calendar)
+        case .activity: ActivityPanel(monitor: vm.activity)
         }
     }
 
@@ -48,13 +49,30 @@ struct ExpandedNotch: View {
 
     // MARK: Header
 
+    /// The room on each side of the camera. Each group is held to it, so nothing ends up
+    /// under the camera however many tabs are showing.
+    private var sideWidth: CGFloat {
+        max(0, (vm.expandedSize.width - vm.geometry.notchWidth - 16) / 2 - (vm.topRadius + 10))
+    }
+
+    /// Whether the selected tab's name fits beside the icons. With every tab showing it
+    /// usually doesn't, and the highlighted icon and its tooltip have to do.
+    private var showsTabLabel: Bool {
+        let label = (vm.tab.title as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 11.5, weight: .semibold)]).width
+        let others = CGFloat(vm.enabledTabs.count - 1)
+        let estimate = others * 25 + others * 2 + 4 + (20 + 13 + 5 + label) + 6
+        return estimate <= sideWidth
+    }
+
     private var header: some View {
-        HStack(spacing: 0) {
+        let showsLabel = showsTabLabel
+        return HStack(spacing: 0) {
             HStack(spacing: 2) {
-                ForEach(vm.enabledTabs) { tabButton($0) }
+                ForEach(vm.enabledTabs) { tabButton($0, showsLabel: showsLabel) }
             }
             .padding(2)
             .background(Capsule().fill(.white.opacity(0.06)))
+            .frame(width: sideWidth, alignment: .leading)
 
             Spacer(minLength: vm.geometry.notchWidth + 16)
 
@@ -68,23 +86,24 @@ struct ExpandedNotch: View {
                     NotchMenu.show(vm: vm)
                 }
             }
+            .frame(width: sideWidth, alignment: .trailing)
         }
         .padding(.horizontal, vm.topRadius + 10)
         .padding(.top, 3)
     }
 
-    private func tabButton(_ tab: NotchViewModel.Tab) -> some View {
+    private func tabButton(_ tab: NotchViewModel.Tab, showsLabel: Bool) -> some View {
         let selected = vm.tab == tab
         return Button { vm.select(tab) } label: {
             HStack(spacing: 5) {
                 icon(for: tab)
-                if selected {
+                if selected && showsLabel {
                     Text(tab.title).font(.system(size: 11.5, weight: .semibold))
                         .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .leading)))
                 }
             }
             .foregroundStyle(.white.opacity(selected ? 1 : 0.6))
-            .padding(.horizontal, selected ? 10 : 7)
+            .padding(.horizontal, selected ? (showsLabel ? 10 : 7) : 6)
             .frame(height: 22)
             .background {
                 if selected { Capsule().fill(.white.opacity(0.16)).matchedGeometryEffect(id: "tab", in: tabHighlight) }
@@ -105,6 +124,7 @@ struct ExpandedNotch: View {
                 .foregroundStyle(timer.isActive ? Color.timerOrange : .white)
         case .clipboard: Image(systemName: "doc.on.clipboard").font(.system(size: 10.5, weight: .semibold))
         case .calendar: Image(systemName: "calendar").font(.system(size: 11, weight: .semibold))
+        case .activity: Image(systemName: "gauge.with.dots.needle.33percent").font(.system(size: 11, weight: .semibold))
         }
     }
 }

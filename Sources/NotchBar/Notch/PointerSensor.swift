@@ -35,6 +35,8 @@ final class PointerSensor {
 
     var debugSummary: String { "visible=\(window.isVisible) frame=\(NSStringFromRect(window.frame))" }
 
+    func setHiddenFromCapture(_ hidden: Bool) { window.sharingType = hidden ? .none : .readOnly }
+
     func hide() {
         if window.isVisible { window.orderOut(nil) }
     }

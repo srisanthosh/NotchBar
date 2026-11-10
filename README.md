@@ -6,7 +6,7 @@
 
 **Your MacBook notch, as a Dynamic Island.**
 
-Music, meetings, Claude usage, timers, clipboard and headphones, right where your camera is.
+Music, meetings, Claude usage, system activity, timers, clipboard and headphones, right where your camera is.
 Native SwiftUI, no dependencies, and almost no battery.
 
 [![Build](https://github.com/srisanthosh/NotchBar/actions/workflows/build.yml/badge.svg)](https://github.com/srisanthosh/NotchBar/actions/workflows/build.yml)
@@ -80,14 +80,19 @@ Banners drop from the notch for a moment, then tuck back in.
 </td><td><img src="docs/screenshots/13-claude-live.png" alt="Claude tab with a 58% session ring, weekly bars and an activity chart"></td></tr>
 <tr><td>
 
-**Calendar.** The month at a glance and your next events. Teams, Zoom, Meet and Webex links get a **Join** button.
+**Calendar.** The month at a glance and your next events, without the meetings you declined or that were canceled. Teams, Zoom, Meet and Webex links get a **Join** button. Click an event to open it in Calendar, or right-click for **Remind Me** and **Hide from Up Next**.
 
 </td><td><img src="docs/screenshots/20-calendar.png" alt="Calendar tab with a month grid and upcoming events"></td></tr>
 <tr><td>
 
-**Clipboard.** Your last 60 copies: text, links, images and files. Click to copy again, or paste, pin or delete. Press <kbd>⌃</kbd><kbd>⌘</kbd><kbd>V</kbd> anywhere to open it. Password managers and concealed items are skipped.
+**Activity.** CPU, memory pressure, swap, network and disk, with the apps using the most CPU. It only measures while you're looking, and **Open Activity Monitor** is one click away.
 
-</td><td><img src="docs/screenshots/19-clipboard.png" alt="Clipboard tab with text, link and image cards"></td></tr>
+</td><td><img src="docs/screenshots/21-activity.png" alt="Activity tab with CPU and memory rings, network and disk rates, and the top processes"></td></tr>
+<tr><td>
+
+**Clipboard.** Your last 60 copies: text, links, images and files. Click to copy again, or paste, pin or delete, and **Clear** the whole history. Press <kbd>⌃</kbd><kbd>⌘</kbd><kbd>V</kbd> anywhere to open it. Password managers and concealed items are skipped.
+
+</td><td><img src="docs/screenshots/19-clipboard.png" alt="Clipboard tab with text, link and image cards and a Clear button"></td></tr>
 <tr><td>
 
 **Timer.** Presets, pause, +1 minute, a countdown beside the notch, and a chime.
@@ -99,6 +104,8 @@ Banners drop from the notch for a moment, then tuck back in.
 <summary><b>And a few more things</b></summary>
 
 - **Home.** Everything above on one page, plus weather. Each widget's title opens its full tab.
+- **Dismiss anything.** Every banner can be put away: meeting reminders have a close button beside Snooze and Join, and the others show one when you hover.
+- **Hide from screenshots.** **… > Hide from Screenshots** leaves the notch out of screenshots, screen recordings and shared screens.
 - **Weather.** Off until you turn it on. It uses your approximate location and the free Open-Meteo service.
 - **Tidy menu bar.** **… > Tidy Menu Bar Icons** tucks icons you rarely use behind a chevron, so the ones you need fit beside the notch. ⌘-drag an icon right of the thin divider to keep it visible.
 - **Lock Screen** and battery level in the header.
@@ -269,7 +276,7 @@ flowchart LR
 ```
 
 - **Events instead of polling.** CoreAudio reports when any app's audio starts or stops. Music and Spotify post change notifications. FSEvents reports transcript and hook changes. DisplayServices reports brightness, and IOKit reports battery.
-- **Polling only where macOS offers nothing else, and only while needed.** Browser tabs and VLC are checked while they play. The clipboard change counter is one cheap call every half second.
+- **Polling only where macOS offers nothing else, and only while needed.** Browser tabs and VLC are checked while they play. The clipboard change counter is one cheap call every half second. Activity reads the kernel's counters only while its tab or the Home widget is on screen.
 - **The pointer costs nothing until it reaches the notch.** A nearly invisible sensor window over the notch gets one event when the pointer arrives. NotchBar follows the pointer only while it's on the notch or the notch is open.
 - **Animations run in the compositor.** The window server animates the waves and the Claude spinner with no CPU from NotchBar.
 - **Everything pauses** while the displays sleep or the Mac is locked.
@@ -387,6 +394,7 @@ Sources/NotchBar/
     Claude/     Transcript scanner, Claude Code integration, usage panel
     Home/       The master page and its compact widgets
     Calendar/   EventKit store, calendar panel, meeting reminders and snooze
+    Activity/   CPU, memory, network, disk and top processes, sampled while visible
     Weather/    Opt-in weather from Open-Meteo
     MenuBar/    The menu bar organizer
     Dictation/  Shows dictation apps like Handy while they listen
@@ -405,6 +413,7 @@ Each feature has the same shape. A `@MainActor` `ObservableObject` owns the stat
 - [x] Calendar with Join and Snooze
 - [x] Clipboard history
 - [x] Headphones, dictation, volume and brightness banners
+- [x] Activity monitor
 - [ ] Notifications in the notch
 - [ ] More Live Activities
 - [ ] A <kbd>⌘</kbd><kbd>K</kbd> command palette

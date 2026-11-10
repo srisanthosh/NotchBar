@@ -65,6 +65,7 @@ struct CollapsedNotch: View {
             if let entry = media.nowPlaying {
                 NowPlayingBanner(entry: entry, artwork: media.artwork, accent: Color(nsColor: media.accent))
                     .onTapGesture { vm.open(.media) }
+                    .dismissable { vm.dismissBanner() }
             }
         case .hud(let state):
             HUDRow(state: state) { vm.hudService.set(state.kind, to: $0) }
@@ -77,8 +78,40 @@ struct CollapsedNotch: View {
             }) { vm.dismissBanner() }
         case .device(let event):
             DeviceBanner(event: event).id(event.name + (event.connected ? "+" : "-"))
+                .dismissable { vm.dismissBanner() }
         }
     }
+}
+
+/// A close button that slides in from the right edge of a banner while the pointer is on it,
+/// for banners that have no button of their own.
+private struct Dismissable: ViewModifier {
+    let action: () -> Void
+    @State private var hover = false
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.trailing, hover ? 26 : 0)
+            .overlay(alignment: .trailing) {
+                if hover {
+                    Button(action: action) {
+                        Image(systemName: "xmark").font(.system(size: 8.5, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .frame(width: 20, height: 20)
+                            .background(Circle().fill(.white.opacity(0.16)))
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(PressableStyle())
+                    .help("Dismiss")
+                    .transition(.opacity.combined(with: .scale(scale: 0.6)))
+                }
+            }
+            .onHover { h in withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { hover = h } }
+    }
+}
+
+private extension View {
+    func dismissable(_ action: @escaping () -> Void) -> some View { modifier(Dismissable(action: action)) }
 }
 
 /// The short "now playing" banner shown when a new track starts.

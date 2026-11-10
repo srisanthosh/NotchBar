@@ -27,6 +27,9 @@ struct HomePanel: View {
             VStack(alignment: .leading, spacing: 18) {
                 HomeClaudeWidget(usage: usage) { vm.select(.claude) }
                 HomeTimerWidget(timer: timer) { vm.select(.timer) }
+                if vm.isEnabled(.activity) {
+                    HomeActivityWidget(monitor: vm.activity) { vm.select(.activity) }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
@@ -45,7 +48,9 @@ struct HomePanel: View {
                 } else {
                     TimelineView(.everyMinute) { context in
                         VStack(alignment: .leading, spacing: 10) {
-                            ForEach(calendar.upcoming.prefix(3)) { EventRow(event: $0, now: context.date) }
+                            ForEach(calendar.upcoming.prefix(3)) {
+                                EventRow(event: $0, now: context.date, compact: true, actions: .init(store: calendar))
+                            }
                         }
                     }
                 }

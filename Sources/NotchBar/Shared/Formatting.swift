@@ -41,3 +41,18 @@ func formatClock(_ t: TimeInterval) -> String {
 func durationLabel(_ t: TimeInterval) -> String {
     t < 60 ? "\(Int(t.rounded())) sec" : "\(Int((t / 60).rounded())) min"
 }
+
+/// Memory the way Activity Monitor shows it: "15.2 GB", "412 MB".
+func formatMemory(_ bytes: UInt64) -> String {
+    ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .memory)
+}
+
+/// A transfer rate, such as "1.2 MB/s" or "0 KB/s".
+func formatRate(_ bytesPerSecond: Double) -> String {
+    guard bytesPerSecond.isFinite, bytesPerSecond >= 1 else { return "0 KB/s" }
+    let formatter = ByteCountFormatter()
+    formatter.countStyle = .decimal
+    formatter.allowedUnits = [.useKB, .useMB, .useGB]
+    formatter.zeroPadsFractionDigits = false
+    return formatter.string(fromByteCount: Int64(bytesPerSecond)) + "/s"
+}

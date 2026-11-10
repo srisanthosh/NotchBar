@@ -47,6 +47,14 @@ final class NotchController {
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.expansionChanged(expanded) } }
         }
         .store(in: &observers)
+        vm.$hideFromScreenshots.removeDuplicates().sink { [weak self] hidden in
+            guard let self else { return }
+            // Windows that aren't shared are left out of screen capture by every screenshot
+            // and recording tool, including the system's.
+            self.panel.sharingType = hidden ? .none : .readOnly
+            self.sensor.setHiddenFromCapture(hidden)
+        }
+        .store(in: &observers)
         updateSensor()
     }
 

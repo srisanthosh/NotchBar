@@ -84,6 +84,10 @@ enum NotchMenu {
         replace.toolTip = "Handles the volume and brightness keys so only the notch HUD appears. Needs Accessibility access."
         menu.addItem(replace)
 
+        let screenshots = Item("Hide from Screenshots", checked: vm.hideFromScreenshots) { vm.hideFromScreenshots.toggle() }
+        screenshots.toolTip = "Leaves the notch out of screenshots, screen recordings and shared screens."
+        menu.addItem(screenshots)
+
         let clipboard = vm.clipboard
         if vm.isEnabled(.clipboard) {
             menu.addItem(Item("Pause Clipboard History", checked: clipboard.isPaused) { clipboard.isPaused.toggle() })

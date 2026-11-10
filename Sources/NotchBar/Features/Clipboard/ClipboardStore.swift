@@ -176,6 +176,15 @@ final class ClipboardStore: ObservableObject {
         save()
     }
 
+    /// Removes everything, pinned items included.
+    func clearAll() {
+        items.forEach(removeFile)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { items.removeAll() }
+        save()
+    }
+
+    var hasPinned: Bool { items.contains { $0.pinned } }
+
     // MARK: Storage
 
     private var thumbnails: [String: NSImage] = [:]

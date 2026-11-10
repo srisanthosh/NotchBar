@@ -35,18 +35,63 @@ struct ClipboardPanel: View {
             }
             .frame(height: 112)
         } else {
-            Group {
-                if Snapshotter.isRendering {
-                    // Image renders leave scroll views empty, so snapshots get a plain row.
-                    cards.frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) { cards }
+            HStack(alignment: .top, spacing: 12) {
+                Group {
+                    if Snapshotter.isRendering {
+                        // Image renders leave scroll views empty, so snapshots get a plain row.
+                        cards.frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) { cards }
+                    }
                 }
+                .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.93),
+                                             .init(color: .clear, location: 1)], startPoint: .leading, endPoint: .trailing))
+                ClearButton(store: store)
             }
             .frame(height: 112)
-            .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.93),
-                                         .init(color: .clear, location: 1)], startPoint: .leading, endPoint: .trailing))
         }
+    }
+}
+
+/// Empties the history. With pinned items around, it asks whether they go too.
+private struct ClearButton: View {
+    @ObservedObject var store: ClipboardStore
+
+    var body: some View {
+        Button {
+            if store.hasPinned { ClearMenu.show(store: store) } else { store.clearAll() }
+        } label: {
+            VStack(spacing: 5) {
+                Image(systemName: "trash").font(.system(size: 13, weight: .semibold))
+                Text("Clear").font(.system(size: 10.5, weight: .semibold))
+            }
+            .foregroundStyle(.white.opacity(0.8))
+            .frame(width: 50, height: 50)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.white.opacity(0.07)))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(PressableStyle(scale: 0.92))
+        .help("Clear the clipboard history")
+    }
+}
+
+@MainActor
+private enum ClearMenu {
+    private final class Item: NSMenuItem {
+        private var handler: (() -> Void)?
+        convenience init(_ title: String, handler: @escaping () -> Void) {
+            self.init(title: title, action: #selector(fire), keyEquivalent: "")
+            self.handler = handler
+            target = self
+        }
+        @objc private func fire() { handler?() }
+    }
+
+    static func show(store: ClipboardStore) {
+        let menu = NSMenu()
+        menu.addItem(Item("Clear, Keep Pinned Items") { store.clearUnpinned() })
+        menu.addItem(Item("Clear Everything") { store.clearAll() })
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 }
 

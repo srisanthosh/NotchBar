@@ -37,11 +37,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let calendar = CalendarStore()
     private let weather = WeatherStore()
     private let dictation = DictationMonitor()
+    private let activity = ActivityMonitor()
     private var controller: NotchController?
     private var clipboardShortcut: HotKey?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let vm = NotchViewModel(media: media, usage: usage, timer: timer, hudService: hud, clipboard: clipboard, calendar: calendar, weather: weather, dictation: dictation)
+        let vm = NotchViewModel(media: media, usage: usage, timer: timer, hudService: hud, clipboard: clipboard, calendar: calendar,
+                                weather: weather, dictation: dictation, activity: activity)
         let controller = NotchController(vm: vm)
         self.controller = controller
         DebugCommands.install(vm: vm, panel: controller.panel, controller: controller)

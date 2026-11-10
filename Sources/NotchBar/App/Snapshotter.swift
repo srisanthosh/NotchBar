@@ -99,18 +99,49 @@ enum Snapshotter {
         let handy = DictationMonitor()
         handy.setPreview(.forBundle("com.pais.handy"))
 
+        // Activity
+        let activity = ActivityMonitor()
+        var load = ActivitySample()
+        load.cpu = 0.34
+        load.cpuUser = 0.23
+        load.cpuSystem = 0.11
+        load.cores = 12
+        load.memoryTotal = 24 << 30
+        load.memoryUsed = UInt64(15.2 * Double(1 << 30))
+        load.swapUsed = UInt64(1.1 * Double(1 << 30))
+        load.networkIn = 1_240_000
+        load.networkOut = 86_000
+        load.diskRead = 0
+        load.diskWrite = 2_100_000
+        load.loadAverage = 3.4
+        load.processes = [
+            ActivityProcess(id: "/Applications/Google Chrome.app", name: "Google Chrome", cpu: 1.26, memory: 3_260 << 20),
+            ActivityProcess(id: "swift-frontend", name: "swift-frontend", cpu: 0.61, memory: 840 << 20),
+            ActivityProcess(id: "WindowServer", name: "WindowServer", cpu: 0.098, memory: 612 << 20),
+            ActivityProcess(id: "/System/Applications/Music.app", name: "Music", cpu: 0.021, memory: 188 << 20),
+            ActivityProcess(id: "/Applications/NotchBar.app", name: "NotchBar", cpu: 0.003, memory: 52 << 20),
+        ]
+        let cpuHistory = [0.08, 0.1, 0.09, 0.12, 0.18, 0.15, 0.11, 0.1, 0.13, 0.22, 0.19, 0.16, 0.14, 0.12, 0.1, 0.11, 0.15, 0.2, 0.17, 0.14,
+                          0.12, 0.1, 0.14, 0.2, 0.31, 0.28, 0.22, 0.45, 0.62, 0.58, 0.4, 0.33, 0.3, 0.27, 0.35, 0.52, 0.48, 0.3, 0.26, 0.34]
+        activity.setPreview(load, cpuHistory: cpuHistory, networkHistory: cpuHistory.map { $0 * 3_000_000 })
+
+        let clearBackground = ProcessInfo.processInfo.environment["NOTCHBAR_SNAPSHOT_CLEAR"] == "1"
         func render(_ name: String, media: MediaController = music, usage: ClaudeUsageStore = live, timer: TimerModel = idleTimer,
                     clipboard: ClipboardStore = clips, dictation: DictationMonitor? = nil, configure: (NotchViewModel) -> Void = { _ in }) {
-            let vm = NotchViewModel(media: media, usage: usage, timer: timer, hudService: HUDService(), clipboard: clipboard, calendar: calendar, weather: weather, dictation: dictation ?? noDictation)
+            let vm = NotchViewModel(media: media, usage: usage, timer: timer, hudService: HUDService(), clipboard: clipboard, calendar: calendar,
+                                    weather: weather, dictation: dictation ?? noDictation, activity: activity)
             configure(vm)
             let view = ZStack(alignment: .top) {
-                LinearGradient(colors: [Color(red: 0.38, green: 0.2, blue: 0.62), Color(red: 0.16, green: 0.12, blue: 0.42)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                // NOTCHBAR_SNAPSHOT_CLEAR=1 leaves out the wallpaper, for compositing (the launch video).
+                if !clearBackground {
+                    LinearGradient(colors: [Color(red: 0.38, green: 0.2, blue: 0.62), Color(red: 0.16, green: 0.12, blue: 0.42)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
                 NotchRootView(vm: vm, media: media, usage: usage, timer: timer)
             }
             .frame(width: NotchController.canvas.width, height: NotchController.canvas.height)
             let renderer = ImageRenderer(content: view)
-            renderer.scale = 2
+            renderer.scale = clearBackground ? 3 : 2
             guard let image = renderer.cgImage,
                   let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
                 print("Couldn't render \(name)")
@@ -156,6 +187,7 @@ enum Snapshotter {
         render("19-clipboard", configure: expanded(.clipboard))
         render("19b-clipboard-empty", clipboard: ClipboardStore(persist: false), configure: expanded(.clipboard))
         render("20-calendar", configure: expanded(.calendar))
+        render("21-activity", configure: expanded(.activity))
     }
 
     private static func sampleArtwork() -> NSImage {

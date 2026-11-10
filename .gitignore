@@ -11,3 +11,4 @@ snapshots/
 .env.*
 .vscode/
 .claude/
+brag-output*/

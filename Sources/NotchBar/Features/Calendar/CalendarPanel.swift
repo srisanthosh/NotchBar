@@ -30,7 +30,7 @@ struct CalendarPanel: View {
                 } else {
                     TimelineView(.everyMinute) { context in
                         VStack(alignment: .leading, spacing: 10) {
-                            ForEach(calendar.upcoming.prefix(3)) { EventRow(event: $0, now: context.date) }
+                            ForEach(calendar.upcoming.prefix(3)) { EventRow(event: $0, now: context.date, actions: .init(store: calendar)) }
                         }
                     }
                 }
@@ -120,9 +120,27 @@ private struct DayCell: View {
     }
 }
 
+/// What a row in Up Next can do, besides Join.
+struct EventActions {
+    let open: (CalendarEvent) -> Void
+    let remind: (CalendarEvent, Date) -> Void
+    let hide: (CalendarEvent) -> Void
+
+    @MainActor init(store: CalendarStore) {
+        open = { store.open($0) }
+        remind = { store.remind($0, at: $1) }
+        hide = { store.hide($0) }
+    }
+}
+
+/// One upcoming event. Click it to see it in Calendar; right-click for a reminder, or to
+/// hide it. `compact` shrinks Join to an icon, for the narrow Home column.
 struct EventRow: View {
     let event: CalendarEvent
     let now: Date
+    var compact = false
+    var actions: EventActions?
+    @State private var hover = false
 
     var body: some View {
         let soon = event.isHappening(at: now) || event.start.timeIntervalSince(now) < 10 * 60
@@ -135,17 +153,52 @@ struct EventRow: View {
                 Text(detail).font(.system(size: 11)).foregroundStyle(.white.opacity(0.5)).lineLimit(1)
             }
             Spacer(minLength: 6)
-            if let url = event.joinURL {
-                Button { NSWorkspace.shared.open(url) } label: {
-                    Label("Join", systemImage: "video.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(soon ? .black : .white)
-                        .padding(.horizontal, 10).frame(height: 24)
-                        .background(Capsule().fill(soon ? Color.green : .white.opacity(0.12)))
-                }
-                .buttonStyle(PressableStyle(scale: 0.94))
+            if let url = event.joinURL { join(url, soon: soon) }
+        }
+        .background {
+            if actions != nil {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(.white.opacity(hover ? 0.07 : 0))
+                    .padding(.horizontal, -7).padding(.vertical, -5)
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { actions?.open(event) }
+        .onHover { h in withAnimation(.easeOut(duration: 0.15)) { hover = h } }
+        .help(actions == nil ? "" : "Open in Calendar")
+        .contextMenu { if let actions { menu(actions) } }
+    }
+
+    private func join(_ url: URL, soon: Bool) -> some View {
+        Button { NSWorkspace.shared.open(url) } label: {
+            Group {
+                if compact {
+                    Image(systemName: "video.fill").font(.system(size: 11, weight: .semibold)).frame(width: 28, height: 24)
+                } else {
+                    Label("Join", systemImage: "video.fill").font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 10).frame(height: 24)
+                }
+            }
+            .foregroundStyle(soon ? .black : .white)
+            .background(Capsule().fill(soon ? Color.green : .white.opacity(0.12)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(PressableStyle(scale: 0.94))
+        .help("Join the meeting")
+    }
+
+    @ViewBuilder private func menu(_ actions: EventActions) -> some View {
+        Button("Open in Calendar") { actions.open(event) }
+        if let url = event.joinURL { Button("Join Meeting") { NSWorkspace.shared.open(url) } }
+        let reminders = CalendarStore.reminderOptions(for: event, now: now)
+        if !reminders.isEmpty {
+            Divider()
+            Menu("Remind Me") {
+                ForEach(reminders, id: \.title) { option in Button(option.title) { actions.remind(event, option.date) } }
+            }
+        }
+        Divider()
+        Button("Hide from Up Next") { actions.hide(event) }
     }
 
     private var detail: String {
@@ -197,11 +250,12 @@ struct MeetingAlertRow: View {
                     Text("Join").font(.system(size: 12, weight: .semibold)).foregroundStyle(.black)
                         .padding(.horizontal, 14).frame(height: 26)
                         .background(Capsule().fill(Color.green))
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(PressableStyle(scale: 0.92))
-            } else {
-                CircleIconButton(systemName: "xmark", size: 24, iconSize: 9.5, help: "Dismiss", action: onDismiss)
             }
+            // Always there, so a reminder can be put away without joining or snoozing.
+            CircleIconButton(systemName: "xmark", size: 24, iconSize: 9.5, help: "Dismiss", action: onDismiss)
         }
         .foregroundStyle(.white)
     }

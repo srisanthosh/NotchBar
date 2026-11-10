@@ -6,9 +6,13 @@ import ApplicationServices
 @MainActor
 final class NotchViewModel: ObservableObject {
     enum Tab: String, CaseIterable, Identifiable {
-        case home, media, claude, timer, clipboard, calendar
+        case home, media, claude, timer, clipboard, calendar, activity
         var id: String { rawValue }
         var title: String { rawValue == "claude" ? "Claude" : rawValue.capitalized }
+
+        /// The tabs that existed before tab preferences were saved, so a tab added later
+        /// shows up for everyone once instead of staying hidden by an old preference.
+        static let original: [Tab] = [.home, .media, .claude, .timer, .clipboard, .calendar]
     }
 
     /// A small drop-down below the closed notch, like a Live Activity.
@@ -55,6 +59,8 @@ final class NotchViewModel: ObservableObject {
     @Published private(set) var enabledTabs: [Tab]
     /// Opened from the keyboard: stays open until the pointer visits or a click lands elsewhere.
     @Published var isSticky = false
+    /// Leaves the notch out of screenshots, screen recordings and screen sharing.
+    @Published var hideFromScreenshots: Bool { didSet { UserDefaults.standard.set(hideFromScreenshots, forKey: "hideFromScreenshots") } }
 
     let media: MediaController
     let usage: ClaudeUsageStore
@@ -64,6 +70,7 @@ final class NotchViewModel: ObservableObject {
     let calendar: CalendarStore
     let weather: WeatherStore
     let dictation: DictationMonitor
+    let activity: ActivityMonitor
 
     static let openSpring = Animation.spring(response: 0.42, dampingFraction: 0.76)
     static let closeSpring = Animation.spring(response: 0.36, dampingFraction: 0.95)
@@ -73,17 +80,19 @@ final class NotchViewModel: ObservableObject {
     private var bag = Set<AnyCancellable>()
 
     init(media: MediaController, usage: ClaudeUsageStore, timer: TimerModel, hudService: HUDService,
-         clipboard: ClipboardStore, calendar: CalendarStore, weather: WeatherStore, dictation: DictationMonitor) {
+         clipboard: ClipboardStore, calendar: CalendarStore, weather: WeatherStore, dictation: DictationMonitor,
+         activity: ActivityMonitor) {
         self.weather = weather
         self.dictation = dictation
+        self.activity = activity
+        hideFromScreenshots = UserDefaults.standard.bool(forKey: "hideFromScreenshots")
         self.media = media
         self.usage = usage
         self.timer = timer
         self.hudService = hudService
         self.clipboard = clipboard
         self.calendar = calendar
-        let saved = UserDefaults.standard.stringArray(forKey: "enabledTabs")?.compactMap(Tab.init(rawValue:))
-        enabledTabs = saved?.isEmpty == false ? saved! : Tab.allCases
+        enabledTabs = Self.loadEnabledTabs()
 
         // The closed notch's width depends on the timer and on playback, so redraw with them.
         timer.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
@@ -98,6 +107,13 @@ final class NotchViewModel: ObservableObject {
             guard self?.isEnabled(.calendar) == true else { return }
             self?.show(.meeting(event))
         }
+        // Activity is only measured while someone can see it.
+        Publishers.CombineLatest($isExpanded, $tab)
+            .sink { [weak self] expanded, tab in
+                guard let self else { return }
+                activity.setActive(expanded && (tab == .activity || (tab == .home && self.isEnabled(.activity))))
+            }
+            .store(in: &bag)
         media.onNeedsAccessibility = { [weak self] app in
             self?.showToast("Allow NotchBar in Privacy & Security > Accessibility to control \(app).")
         }
@@ -113,6 +129,21 @@ final class NotchViewModel: ObservableObject {
             .store(in: &bag)
         clipboard.isEnabled = isEnabled(.clipboard)
         if !enabledTabs.contains(tab) { tab = enabledTabs[0] }
+    }
+
+    /// The saved tab choice, plus any tab that didn't exist when it was saved.
+    private static func loadEnabledTabs() -> [Tab] {
+        let defaults = UserDefaults.standard
+        defer { defaults.set(Tab.allCases.map(\.rawValue), forKey: "knownTabs") }
+        guard let saved = defaults.stringArray(forKey: "enabledTabs")?.compactMap(Tab.init(rawValue:)), !saved.isEmpty else {
+            return Tab.allCases
+        }
+        let known = Set((defaults.stringArray(forKey: "knownTabs") ?? Tab.original.map(\.rawValue)).compactMap(Tab.init(rawValue:)))
+        let added = Tab.allCases.filter { !known.contains($0) }
+        guard !added.isEmpty else { return saved }
+        let tabs = Tab.allCases.filter { saved.contains($0) || added.contains($0) }
+        defaults.set(tabs.map(\.rawValue), forKey: "enabledTabs")
+        return tabs
     }
 
     // MARK: Shape
@@ -141,6 +172,8 @@ final class NotchViewModel: ObservableObject {
         if case .device(let event) = banner {
             return CGSize(width: max(base + 90, 390), height: geometry.notchHeight + (event.battery.isEmpty ? 58 : 108))
         }
+        // Snooze, Join and Dismiss sit side by side, so a meeting needs the room.
+        if case .meeting = banner { return CGSize(width: max(base + 120, 420), height: geometry.notchHeight + 50) }
         return CGSize(width: max(base + 70, 340), height: geometry.notchHeight + 50)
     }
 
@@ -148,7 +181,7 @@ final class NotchViewModel: ObservableObject {
         let content: CGFloat
         switch tab {
         case .home: content = 346
-        case .calendar: content = 222
+        case .calendar, .activity: content = 222
         default: content = 150
         }
         // A toast gets its own strip below the content instead of covering it.
@@ -175,6 +208,7 @@ final class NotchViewModel: ObservableObject {
         UserDefaults.standard.set(tabs.map(\.rawValue), forKey: "enabledTabs")
         clipboard.isEnabled = isEnabled(.clipboard)
         if !tabs.contains(self.tab) { self.tab = tabs[0] }
+        activity.setActive(isExpanded && (self.tab == .activity || (self.tab == .home && isEnabled(.activity))))
     }
 
     /// The tab to open from the middle of the notch: Home, or the first visible tab.
@@ -216,6 +250,11 @@ final class NotchViewModel: ObservableObject {
     func show(_ new: Banner) {
         guard !isExpanded else {
             if new == .timerDone && isEnabled(.timer) { select(.timer) }
+            // A reminder still reaches you while the notch is open, as a line at the bottom.
+            if case .meeting(let event) = new {
+                let minutes = Int(ceil(event.start.timeIntervalSinceNow / 60))
+                showToast(minutes > 0 ? "\(event.title) starts in \(minutes) min" : "\(event.title) is starting now")
+            }
             return
         }
         // While a device banner shows, a volume change updates its volume instead.

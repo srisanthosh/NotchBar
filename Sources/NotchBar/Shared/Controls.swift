@@ -5,6 +5,8 @@ extension Color {
     static let claudeWaiting = Color(red: 1, green: 0.76, blue: 0.28)
     static let timerOrange = Color(red: 1, green: 0.624, blue: 0.039)
     static let linkBlue = Color(red: 0.45, green: 0.7, blue: 1)
+    static let cpuBlue = Color(red: 0.36, green: 0.66, blue: 1)
+    static let memoryGreen = Color(red: 0.19, green: 0.82, blue: 0.35)
 }
 
 /// Shrinks a little while pressed, like system buttons.

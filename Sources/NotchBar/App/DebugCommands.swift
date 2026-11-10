@@ -6,8 +6,8 @@ import ApplicationServices
 ///
 /// Only active when launched with `NOTCHBAR_DEBUG=1`. Post the distributed notification
 /// `com.local.notchbar.debug` with one of these as its object:
-/// `open:<tab>` (home, media, claude, timer, clipboard, calendar), `media`, `claude`, `timer`,
-/// `clipboard`, `calendar`, `close`, `peek`, `volume`,
+/// `open:<tab>` (home, media, claude, timer, clipboard, calendar, activity), `media`, `claude`, `timer`,
+/// `clipboard`, `calendar`, `activity`, `close`, `peek`, `volume`,
 /// `brightness`, `timer5s`, `toggle` (play/pause), `dismiss`, `hover`, `shot:<path.png>` to save the window, or
 /// `state:<path.json>` to save what the notch currently shows, or `axtabs:<path.txt>` to dump
 /// how Chrome describes its YouTube tabs to Accessibility.
@@ -35,6 +35,7 @@ enum DebugCommands {
         case "timer": vm.open(.timer)
         case "clipboard": vm.toggleClipboard()
         case "calendar": vm.open(.calendar)
+        case "activity": vm.open(.activity)
         case "close": vm.close()
         case "peek": vm.show(.nowPlaying)
         case "volume": vm.show(.hud(HUDState(kind: .volume, value: audio.volume, muted: audio.isMuted)))
@@ -76,6 +77,9 @@ enum DebugCommands {
                     + "resets=\(vm.usage.sessionResetsAt.map { $0.formatted(date: .omitted, time: .shortened) } ?? "-") "
                     + "cost=\(Int(vm.usage.snapshot.sessionCost)) cal=\(vm.usage.calibration.map { "\(Int($0.costPerPercent))/% manual=\($0.manual)" } ?? "none")",
                 "hovering": vm.isHovering,
+                "notch": "\(Int(vm.geometry.notchWidth))x\(Int(vm.geometry.notchHeight))",
+                "activity": String(format: "cpu=%.0f%% mem=%.0f%% sample=%.1fms", vm.activity.sample.cpu * 100,
+                                   vm.activity.sample.memoryFraction * 100, vm.activity.lastSampleDuration * 1000),
                 "pointer": controller.debugPointer,
                 "expanded": vm.isExpanded,
                 "accessibility": AXIsProcessTrusted(),

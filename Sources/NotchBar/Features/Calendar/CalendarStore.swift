@@ -37,12 +37,19 @@ final class CalendarStore: ObservableObject {
     private var announced = Set<String>()
     /// Snoozed reminders: event ID and when to remind again.
     private var snoozed: [String: Date] = [:]
+    /// Events hidden from Up Next, with when they end, so the list forgets them on its own.
+    private var hidden: [String: Date] {
+        didSet { UserDefaults.standard.set(hidden.mapValues { $0.timeIntervalSince1970 }, forKey: "hiddenEvents") }
+    }
     private let calendar = Calendar.current
     private static let headsUp: TimeInterval = 5 * 60
 
     init() {
         access = Self.currentAccess()
         displayedMonth = Calendar.current.dateInterval(of: .month, for: Date())?.start ?? Date()
+        let now = Date()
+        hidden = (UserDefaults.standard.dictionary(forKey: "hiddenEvents") as? [String: Double] ?? [:])
+            .compactMapValues { end in end > now.timeIntervalSince1970 ? Date(timeIntervalSince1970: end) : nil }
     }
 
     func start() {
@@ -89,6 +96,44 @@ final class CalendarStore: ObservableObject {
         self.busyDays = busyDays
     }
 
+    // MARK: Actions on an event
+
+    /// Shows the event in the Calendar app.
+    func open(_ event: CalendarEvent) {
+        let id = event.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? event.id
+        if let url = URL(string: "ical://ekevent/\(id)?method=show&options=more"), NSWorkspace.shared.open(url) { return }
+        if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.iCal") {
+            NSWorkspace.shared.openApplication(at: app, configuration: NSWorkspace.OpenConfiguration())
+        }
+    }
+
+    /// Drops a reminder banner for `event` at `date`, in place of the usual heads-up.
+    func remind(_ event: CalendarEvent, at date: Date) {
+        announced.insert(event.id)
+        snoozed[event.id] = date
+        scheduleNextBoundary()
+    }
+
+    /// Takes `event` out of Up Next until it ends. Its reminder goes too.
+    func hide(_ event: CalendarEvent) {
+        hidden[event.id] = event.end
+        announced.insert(event.id)
+        snoozed[event.id] = nil
+        upcoming.removeAll { $0.id == event.id }
+        if access == .granted { loadUpcoming() }
+    }
+
+    /// The reminder choices that are still ahead of `event`.
+    static func reminderOptions(for event: CalendarEvent, now: Date = Date()) -> [(title: String, date: Date)] {
+        let lead = event.start.timeIntervalSince(now)
+        var options: [(String, Date)] = []
+        if lead > 11 * 60 { options.append(("10 minutes before", event.start.addingTimeInterval(-10 * 60))) }
+        if lead > 6 * 60 { options.append(("5 minutes before", event.start.addingTimeInterval(-5 * 60))) }
+        if lead > 90 { options.append(("1 minute before", event.start.addingTimeInterval(-60))) }
+        if lead > 20 { options.append(("When it starts", event.start)) }
+        return options
+    }
+
     // MARK: Loading
 
     private func reload() {
@@ -104,8 +149,8 @@ final class CalendarStore: ObservableObject {
         guard let horizon = calendar.date(byAdding: .day, value: 7, to: now) else { return }
         let predicate = store.predicateForEvents(withStart: calendar.startOfDay(for: now), end: horizon, calendars: nil)
         let events = store.events(matching: predicate)
-            .filter { $0.endDate > now && !isDeclined($0) }
-            .sorted { $0.startDate < $1.startDate }
+            .filter { $0.endDate > now && !isSkipped($0) && hidden[$0.eventIdentifier ?? ""] == nil }
+            .sorted(by: upNextOrder)
             .prefix(6)
             .map(Self.makeEvent)
         if events != upcoming { upcoming = Array(events) }
@@ -116,7 +161,7 @@ final class CalendarStore: ObservableObject {
               let month = calendar.dateInterval(of: .month, for: displayedMonth) else { busyDays = []; return }
         let predicate = store.predicateForEvents(withStart: month.start, end: month.end, calendars: nil)
         var days = Set<Int>()
-        for event in store.events(matching: predicate) where !isDeclined(event) {
+        for event in store.events(matching: predicate) where !isSkipped(event) {
             var day = max(event.startDate, month.start)
             while day < min(event.endDate, month.end) {
                 days.insert(calendar.component(.day, from: day))
@@ -173,8 +218,22 @@ final class CalendarStore: ObservableObject {
         }
     }
 
-    private func isDeclined(_ event: EKEvent) -> Bool {
-        event.attendees?.contains { $0.isCurrentUser && $0.participantStatus == .declined } == true
+    /// Chronological, except that within a day the meetings come before all-day items such
+    /// as birthdays and holidays, which would otherwise fill the list every morning.
+    private func upNextOrder(_ a: EKEvent, _ b: EKEvent) -> Bool {
+        let dayA = calendar.startOfDay(for: a.startDate), dayB = calendar.startOfDay(for: b.startDate)
+        if dayA != dayB { return dayA < dayB }
+        if a.isAllDay != b.isAllDay { return !a.isAllDay }
+        return a.startDate < b.startDate
+    }
+
+    /// Meetings you declined, and meetings the organizer canceled. Outlook and Exchange keep a
+    /// canceled meeting on the calendar with a "Canceled:" title until you remove it.
+    private func isSkipped(_ event: EKEvent) -> Bool {
+        if event.status == .canceled { return true }
+        if event.attendees?.contains(where: { $0.isCurrentUser && $0.participantStatus == .declined }) == true { return true }
+        let title = (event.title ?? "").lowercased()
+        return title.hasPrefix("canceled:") || title.hasPrefix("cancelled:") || title.hasPrefix("canceled -") || title.hasPrefix("cancelled -")
     }
 
     private static func currentAccess() -> Access {
